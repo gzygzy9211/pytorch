@@ -68,12 +68,12 @@ using dist_acctype = typename DistAccumType<T>::type;
 
 // Constants for uniform distribution
 // doubles have 52 bits of mantissa (fractional part)
-constexpr uint64_t DOUBLE_MASK = (1ULL << 53) - 1;
-constexpr double DOUBLE_DIVISOR = 1.0 / (1ULL << 53);
+constexpr uint64_t DOUBLE_MASK = (1ULL << std::numeric_limits<double>::digits) - 1;
+constexpr double DOUBLE_DIVISOR = 1.0 / (1ULL << std::numeric_limits<double>::digits);
 
 // floats have 23 bits of mantissa (fractional part)
-constexpr uint32_t FLOAT_MASK = (1 << 24) - 1;
-constexpr float FLOAT_DIVISOR = 1.0f / (1 << 24);
+constexpr uint32_t FLOAT_MASK = (1 << std::numeric_limits<float>::digits) - 1;
+constexpr float FLOAT_DIVISOR = 1.0f / (1 << std::numeric_limits<float>::digits);
 
 /**
  * Samples a uniform distribution in the range [0,1) of type T
@@ -81,15 +81,15 @@ constexpr float FLOAT_DIVISOR = 1.0f / (1 << 24);
 template <typename T>
 struct uniform_real_distribution {
 
-  inline uniform_real_distribution(T a_in, T b_in) {
-    TORCH_CHECK(a_in <= b_in);
-    TORCH_CHECK(b_in-a_in <= std::numeric_limits<T>::max());
+  C10_HOST_DEVICE inline uniform_real_distribution(T a_in, T b_in) {
+    TORCH_CHECK_IF_NOT_ON_CUDA(a_in <= b_in);
+    TORCH_CHECK_IF_NOT_ON_CUDA(b_in-a_in <= std::numeric_limits<T>::max());
     a = a_in;
     b = b_in;
   }
 
   template <typename RNG>
-  inline dist_acctype<T> operator()(RNG* generator){
+  C10_HOST_DEVICE inline dist_acctype<T> operator()(RNG* generator){
     dist_acctype<T> x;
     if(std::is_same<T, double>::value) {
       x = (generator->random64() & DOUBLE_MASK) * DOUBLE_DIVISOR;
